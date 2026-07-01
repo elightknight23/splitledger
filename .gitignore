@@ -1,0 +1,18 @@
+SPLITLEDGER_SPEC.md
+SPLITLEDGER_SPRINT_PLAN.md
+INTERVIEW_PREP.md
+
+# Local/dev secrets
+.env
+.env.*.local
+
+# OS/editor cruft
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Dependencies & build output (also covered by per-app .gitignores)
+node_modules
+dist
+dist-ssr
