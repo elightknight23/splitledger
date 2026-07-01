@@ -1,13 +1,98 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  groupsCreated    Group[]        @relation("GroupCreator")
+  groupMemberships GroupMember[]
+  expensesPaid     Expense[]      @relation("ExpensePayer")
+  expenseSplits    ExpenseSplit[]
+  settlementsFrom  Settlement[]   @relation("SettlementFromUser")
+  settlementsTo    Settlement[]   @relation("SettlementToUser")
+
+  @@map("users")
+}
+
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  creator     User          @relation("GroupCreator", fields: [createdBy], references: [id])
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       Int      @id @default(autoincrement())
+  groupId  Int      @map("group_id")
+  userId   Int      @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  groupId     Int      @map("group_id")
+  paidBy      Int      @map("paid_by")
+  amount      Decimal  @db.Decimal(10, 2)
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  group  Group          @relation(fields: [groupId], references: [id])
+  payer  User           @relation("ExpensePayer", fields: [paidBy], references: [id])
+  splits ExpenseSplit[]
+
+  @@map("expenses")
+}
+
+// Cascade here (unlike the other join/FK relations) because deleting an expense
+// is an explicit MVP feature (spec section 4), and a split has no meaning
+// without its parent expense.
+model ExpenseSplit {
+  id          Int     @id @default(autoincrement())
+  expenseId   Int     @map("expense_id")
+  userId      Int     @map("user_id")
+  shareAmount Decimal @map("share_amount") @db.Decimal(10, 2)
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("expense_splits")
+}
+
+model Settlement {
+  id        Int      @id @default(autoincrement())
+  groupId   Int      @map("group_id")
+  fromUser  Int      @map("from_user")
+  toUser    Int      @map("to_user")
+  amount    Decimal  @db.Decimal(10, 2)
+  settledAt DateTime @default(now()) @map("settled_at")
+
+  group        Group @relation(fields: [groupId], references: [id])
+  fromUserRef  User  @relation("SettlementFromUser", fields: [fromUser], references: [id])
+  toUserRef    User  @relation("SettlementToUser", fields: [toUser], references: [id])
+
+  @@map("settlements")
 }
