@@ -1,6 +1,7 @@
 SPLITLEDGER_SPEC.md
 SPLITLEDGER_SPRINT_PLAN.md
 INTERVIEW_PREP.md
+splitledger-design-brief.md
 
 # Local/dev secrets
 .env

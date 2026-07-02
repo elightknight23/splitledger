@@ -25,5 +25,12 @@ export function parseMoneyToCents(value: unknown): number | null {
 }
 
 export function centsToDecimalString(cents: number): string {
-  return `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
+  // Sign handled separately from magnitude: JS's `%`/Math.floor on a negative
+  // dividend (e.g. -15050) produce -151 and -50, which naively concatenated
+  // gives "-151.-50" instead of "-150.50". Only relevant once Sprint 4
+  // started formatting negative balances — expense/split amounts are always
+  // positive so this never surfaced before.
+  const sign = cents < 0 ? "-" : "";
+  const abs = Math.abs(cents);
+  return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
 }

@@ -5,6 +5,7 @@ import express from "express";
 import authRoutes from "./routes/auth.routes";
 import expenseRoutes from "./routes/expense.routes";
 import groupRoutes from "./routes/group.routes";
+import settlementRoutes from "./routes/settlement.routes";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/groups", groupRoutes);
 app.use("/groups/:groupId/expenses", expenseRoutes);
+app.use("/groups/:groupId", settlementRoutes);
 
 const port = process.env.PORT ?? 4000;
 app.listen(port, () => {
