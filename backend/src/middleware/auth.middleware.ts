@@ -4,7 +4,7 @@ import { verifyAccessToken } from "../services/auth.service";
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: number; email: string };
+      user?: { id: number; name: string; email: string };
     }
   }
 }
@@ -20,7 +20,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = verifyAccessToken(token);
-    req.user = { id: payload.sub, email: payload.email };
+    req.user = { id: payload.sub, name: payload.name, email: payload.email };
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired access token" });

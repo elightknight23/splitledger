@@ -12,6 +12,7 @@ export class InvalidCredentialsError extends Error {}
 
 interface TokenPayload {
   sub: number;
+  name: string;
   email: string;
 }
 
@@ -58,13 +59,13 @@ export async function validateCredentials({ email, password }: LoginInput) {
   return user;
 }
 
-export function generateAccessToken(user: { id: number; email: string }) {
-  const payload: TokenPayload = { sub: user.id, email: user.email };
+export function generateAccessToken(user: { id: number; name: string; email: string }) {
+  const payload: TokenPayload = { sub: user.id, name: user.name, email: user.email };
   return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, { expiresIn: ACCESS_TOKEN_TTL });
 }
 
-export function generateRefreshToken(user: { id: number; email: string }) {
-  const payload: TokenPayload = { sub: user.id, email: user.email };
+export function generateRefreshToken(user: { id: number; name: string; email: string }) {
+  const payload: TokenPayload = { sub: user.id, name: user.name, email: user.email };
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, { expiresIn: REFRESH_TOKEN_TTL });
 }
 

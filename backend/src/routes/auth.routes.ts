@@ -126,4 +126,14 @@ router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
+// The refresh token lives in an httpOnly cookie, so client-side JS can never
+// clear it directly — without this endpoint, "logout" could only wipe the
+// in-memory access token, and the next page load would silently re-authenticate
+// the user via POST /auth/refresh anyway. clearCookie needs the same path
+// (and sameSite/secure) the cookie was set with, or the browser won't match it.
+router.post("/logout", (_req, res) => {
+  res.clearCookie(REFRESH_COOKIE_NAME, REFRESH_COOKIE_OPTIONS);
+  res.status(204).send();
+});
+
 export default router;
