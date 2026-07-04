@@ -15,7 +15,7 @@ Split expenses with a group, see live-computed balances, and settle up with the 
 
 ## Features
 
-- **Groups** — create a group, add members by email
+- **Groups** — create a group, invite members by email (they must accept the invite to join), leave a group once your balance is settled, delete a group if you created it
 - **Expenses** — equal or custom splits (plus percent/shares modes in the UI), edit/delete your own entries
 - **Balances** — every member's net position, computed live from the ledger on every read; there is no stored balance column to drift out of sync
 - **Settle up** — a minimum-transaction algorithm suggests who pays whom; one click records the settlement and balances update immediately
@@ -69,7 +69,11 @@ POST   /auth/register            POST   /auth/login
 POST   /auth/refresh             POST   /auth/logout
 
 POST   /groups                   GET    /groups
-GET    /groups/:id               POST   /groups/:id/members
+GET    /groups/:id               DELETE /groups/:id        # creator only
+POST   /groups/:id/invites       POST   /groups/:id/leave  # leave requires zero balance
+
+GET    /invites                  # pending invites for the current user
+POST   /invites/:id/accept       POST   /invites/:id/decline
 
 POST   /groups/:id/expenses      GET    /groups/:id/expenses
 PUT    /groups/:id/expenses/:eid DELETE /groups/:id/expenses/:eid

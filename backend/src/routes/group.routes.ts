@@ -1,13 +1,19 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware";
 import {
+  AlreadyInvitedError,
   AlreadyMemberError,
+  CreatorCannotLeaveError,
   GroupNotFoundError,
+  NotGroupCreatorError,
   NotGroupMemberError,
+  OutstandingBalanceError,
   UserNotFoundError,
-  addMemberByEmail,
   createGroup,
+  deleteGroup,
   getGroupDetail,
+  inviteMemberByEmail,
+  leaveGroup,
   listGroupsForUser,
 } from "../services/group.service";
 
@@ -63,7 +69,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/members", async (req, res) => {
+// Replaces the old direct-add POST /:id/members — joining now requires the
+// invited user to accept (see invite.routes.ts for the recipient's side).
+router.post("/:id/invites", async (req, res) => {
   const groupId = parseGroupId(req.params.id);
   const { email } = req.body ?? {};
 
@@ -77,8 +85,35 @@ router.post("/:id/members", async (req, res) => {
   }
 
   try {
-    const membership = await addMemberByEmail(groupId, req.user!.id, email);
-    res.status(201).json(membership);
+    const invite = await inviteMemberByEmail(groupId, req.user!.id, email);
+    res.status(201).json(invite);
+  } catch (err) {
+    if (err instanceof GroupNotFoundError || err instanceof UserNotFoundError) {
+      res.status(404).json({ error: err.message });
+      return;
+    }
+    if (err instanceof NotGroupMemberError) {
+      res.status(403).json({ error: err.message });
+      return;
+    }
+    if (err instanceof AlreadyMemberError || err instanceof AlreadyInvitedError) {
+      res.status(409).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+});
+
+router.post("/:id/leave", async (req, res) => {
+  const groupId = parseGroupId(req.params.id);
+  if (groupId === null) {
+    res.status(400).json({ error: "Invalid group id" });
+    return;
+  }
+
+  try {
+    await leaveGroup(groupId, req.user!.id);
+    res.status(204).end();
   } catch (err) {
     if (err instanceof GroupNotFoundError) {
       res.status(404).json({ error: err.message });
@@ -88,12 +123,31 @@ router.post("/:id/members", async (req, res) => {
       res.status(403).json({ error: err.message });
       return;
     }
-    if (err instanceof UserNotFoundError) {
+    if (err instanceof CreatorCannotLeaveError || err instanceof OutstandingBalanceError) {
+      res.status(409).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  const groupId = parseGroupId(req.params.id);
+  if (groupId === null) {
+    res.status(400).json({ error: "Invalid group id" });
+    return;
+  }
+
+  try {
+    await deleteGroup(groupId, req.user!.id);
+    res.status(204).end();
+  } catch (err) {
+    if (err instanceof GroupNotFoundError) {
       res.status(404).json({ error: err.message });
       return;
     }
-    if (err instanceof AlreadyMemberError) {
-      res.status(409).json({ error: err.message });
+    if (err instanceof NotGroupMemberError || err instanceof NotGroupCreatorError) {
+      res.status(403).json({ error: err.message });
       return;
     }
     throw err;

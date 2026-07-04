@@ -70,3 +70,16 @@ export interface BalancesResponse {
   balances: Balance[];
   suggestedSettlements: SuggestedSettlement[];
 }
+
+// A pending invitation for the current user (rows only exist while pending —
+// accepting or declining removes them server-side).
+export interface GroupInvite {
+  id: number;
+  groupId: number;
+  invitedUserId: number;
+  invitedById: number;
+  createdAt: string;
+  group: { id: number; name: string };
+  invitedBy: GroupMemberUser;
+  invitedUser: GroupMemberUser;
+}

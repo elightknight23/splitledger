@@ -21,6 +21,8 @@ model User {
   expenseSplits    ExpenseSplit[]
   settlementsFrom  Settlement[]   @relation("SettlementFromUser")
   settlementsTo    Settlement[]   @relation("SettlementToUser")
+  invitesReceived  GroupInvite[]  @relation("InviteRecipient")
+  invitesSent      GroupInvite[]  @relation("InviteSender")
 
   @@map("users")
 }
@@ -35,8 +37,28 @@ model Group {
   members     GroupMember[]
   expenses    Expense[]
   settlements Settlement[]
+  invites     GroupInvite[]
 
   @@map("groups")
+}
+
+// A row here means "invitation pending" — accepting creates the GroupMember
+// and deletes the row in one transaction; declining just deletes it. No status
+// column, so GroupMember keeps meaning "actual member" everywhere and none of
+// the balance/membership checks need a status filter.
+model GroupInvite {
+  id            Int      @id @default(autoincrement())
+  groupId       Int      @map("group_id")
+  invitedUserId Int      @map("invited_user_id")
+  invitedById   Int      @map("invited_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  group       Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  invitedUser User  @relation("InviteRecipient", fields: [invitedUserId], references: [id])
+  invitedBy   User  @relation("InviteSender", fields: [invitedById], references: [id])
+
+  @@unique([groupId, invitedUserId])
+  @@map("group_invites")
 }
 
 model GroupMember {

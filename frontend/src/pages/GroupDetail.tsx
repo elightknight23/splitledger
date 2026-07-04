@@ -1,7 +1,17 @@
-import { Activity, Pencil, Plus, Receipt, Scale, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  Activity,
+  DoorOpen,
+  Pencil,
+  Plus,
+  Receipt,
+  Scale,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, apiFetch } from "../api/client";
 import { ActivityTab } from "../components/ActivityTab";
 import { AddExpenseModal } from "../components/AddExpenseModal";
@@ -19,6 +29,7 @@ type Tab = (typeof TABS)[number]["name"];
 
 export function GroupDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [group, setGroup] = useState<GroupDetailData | null>(null);
@@ -30,6 +41,10 @@ export function GroupDetail() {
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const [addMemberSuccess, setAddMemberSuccess] = useState<string | null>(null);
+
+  // Shared by the leave and delete actions — both navigate away on success.
+  const [dangerError, setDangerError] = useState<string | null>(null);
+  const [isDangerActing, setIsDangerActing] = useState(false);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesError, setExpensesError] = useState<string | null>(null);
@@ -64,23 +79,57 @@ export function GroupDetail() {
     void loadExpenses();
   }, [id]);
 
-  async function handleAddMember(e: FormEvent) {
+  async function handleInviteMember(e: FormEvent) {
     e.preventDefault();
     setAddMemberError(null);
     setAddMemberSuccess(null);
     setIsAddingMember(true);
     try {
-      await apiFetch(`/groups/${id}/members`, {
+      await apiFetch(`/groups/${id}/invites`, {
         method: "POST",
         body: { email: memberEmail },
       });
-      setAddMemberSuccess(`Added ${memberEmail}`);
+      // No group refresh: they only appear in the member list once they accept.
+      setAddMemberSuccess(`Invite sent to ${memberEmail}`);
       setMemberEmail("");
-      await loadGroup();
     } catch (err) {
-      setAddMemberError(err instanceof ApiError ? err.message : "Failed to add member");
+      setAddMemberError(err instanceof ApiError ? err.message : "Failed to send invite");
     } finally {
       setIsAddingMember(false);
+    }
+  }
+
+  async function handleLeaveGroup() {
+    if (!window.confirm("Leave this group?")) {
+      return;
+    }
+    setDangerError(null);
+    setIsDangerActing(true);
+    try {
+      await apiFetch(`/groups/${id}/leave`, { method: "POST" });
+      navigate("/dashboard");
+    } catch (err) {
+      setDangerError(err instanceof ApiError ? err.message : "Failed to leave group");
+      setIsDangerActing(false);
+    }
+  }
+
+  async function handleDeleteGroup() {
+    if (
+      !window.confirm(
+        "Delete this group? All of its expenses and settlements will be permanently deleted for every member. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+    setDangerError(null);
+    setIsDangerActing(true);
+    try {
+      await apiFetch(`/groups/${id}`, { method: "DELETE" });
+      navigate("/dashboard");
+    } catch (err) {
+      setDangerError(err instanceof ApiError ? err.message : "Failed to delete group");
+      setIsDangerActing(false);
     }
   }
 
@@ -253,11 +302,11 @@ export function GroupDetail() {
           </ul>
 
           <form
-            onSubmit={(e) => void handleAddMember(e)}
+            onSubmit={(e) => void handleInviteMember(e)}
             className="mt-6 border-2 border-dashed border-outline bg-surface-container-lowest/50 p-4"
           >
             <label className="label-caps mb-3 block text-on-surface-variant" htmlFor="member-email">
-              Add_Member:
+              Invite_Member:
             </label>
             {addMemberError && (
               <p className="mb-3 border-2 border-error bg-error-container px-2 py-1.5 text-xs text-on-error-container">
@@ -284,9 +333,38 @@ export function GroupDetail() {
               className="label-caps flex w-full items-center justify-center gap-2 bg-on-surface py-2.5 text-surface transition-colors hover:bg-primary disabled:opacity-60"
             >
               <UserPlus className="h-4 w-4" />
-              {isAddingMember ? "Adding…" : "Send Invite"}
+              {isAddingMember ? "Sending…" : "Send Invite"}
             </button>
           </form>
+
+          <div className="mt-6 border-t-2 border-dashed border-on-surface/20 pt-4">
+            {dangerError && (
+              <p className="mb-3 border-2 border-error bg-error-container px-2 py-1.5 text-xs text-on-error-container">
+                {dangerError}
+              </p>
+            )}
+            {user?.id === group.createdBy ? (
+              <button
+                type="button"
+                disabled={isDangerActing}
+                onClick={() => void handleDeleteGroup()}
+                className="label-caps flex w-full items-center justify-center gap-2 border-2 border-error py-2.5 text-error transition-colors hover:bg-error hover:text-surface disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDangerActing ? "Deleting…" : "Delete Group"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isDangerActing}
+                onClick={() => void handleLeaveGroup()}
+                className="label-caps flex w-full items-center justify-center gap-2 border-2 border-error py-2.5 text-error transition-colors hover:bg-error hover:text-surface disabled:opacity-60"
+              >
+                <DoorOpen className="h-4 w-4" />
+                {isDangerActing ? "Leaving…" : "Leave Group"}
+              </button>
+            )}
+          </div>
         </aside>
       </div>
 

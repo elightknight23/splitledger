@@ -1,17 +1,22 @@
-import { Loader2, PlusCircle } from "lucide-react";
+import { Check, Loader2, Mail, PlusCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, apiFetch } from "../api/client";
 import { GroupCard } from "../components/GroupCard";
 import { Modal } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
-import type { Group } from "../types";
+import type { Group, GroupInvite } from "../types";
 
 export function Dashboard() {
   const { user } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [invites, setInvites] = useState<GroupInvite[]>([]);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  // Invite id currently being accepted/declined, so only that row's buttons lock.
+  const [actingInviteId, setActingInviteId] = useState<number | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
@@ -31,9 +36,36 @@ export function Dashboard() {
     }
   }
 
+  async function loadInvites() {
+    try {
+      const data = await apiFetch<GroupInvite[]>("/invites");
+      setInvites(data);
+    } catch {
+      // Non-critical panel — a failed invite fetch shouldn't block the dashboard.
+      setInvites([]);
+    }
+  }
+
   useEffect(() => {
     void loadGroups();
+    void loadInvites();
   }, []);
+
+  async function handleInviteAction(invite: GroupInvite, action: "accept" | "decline") {
+    setInviteError(null);
+    setActingInviteId(invite.id);
+    try {
+      await apiFetch(`/invites/${invite.id}/${action}`, { method: "POST" });
+      await loadInvites();
+      if (action === "accept") {
+        await loadGroups();
+      }
+    } catch (err) {
+      setInviteError(err instanceof ApiError ? err.message : `Failed to ${action} invite`);
+    } finally {
+      setActingInviteId(null);
+    }
+  }
 
   async function handleCreateGroup(e: FormEvent) {
     e.preventDefault();
@@ -70,6 +102,60 @@ export function Dashboard() {
           + New Group
         </button>
       </div>
+
+      {invites.length > 0 && (
+        <section className="mt-8">
+          <h2 className="label-caps flex items-center gap-2 text-on-surface-variant">
+            <Mail className="h-4 w-4" />
+            Pending Invites
+          </h2>
+          {inviteError && (
+            <p className="mt-3 border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
+              {inviteError}
+            </p>
+          )}
+          <ul className="mt-3 space-y-3">
+            {invites.map((invite) => {
+              const isActing = actingInviteId === invite.id;
+              return (
+                <li
+                  key={invite.id}
+                  className="hard-shadow-sm flex flex-wrap items-center justify-between gap-3 border-2 border-on-surface bg-secondary-fixed p-4"
+                >
+                  <p className="font-body text-on-surface">
+                    <span className="font-bold">{invite.invitedBy.name}</span> invited you to{" "}
+                    <span className="font-bold">{invite.group.name}</span>
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={isActing}
+                      onClick={() => void handleInviteAction(invite, "accept")}
+                      className="label-caps flex items-center gap-1.5 border-2 border-on-surface bg-tertiary px-3 py-2 text-on-tertiary transition-colors hover:bg-tertiary-container disabled:opacity-60"
+                    >
+                      {isActing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isActing}
+                      onClick={() => void handleInviteAction(invite, "decline")}
+                      className="label-caps flex items-center gap-1.5 border-2 border-on-surface bg-surface px-3 py-2 text-on-surface transition-colors hover:bg-error-container disabled:opacity-60"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {loadError && (
         <p className="mt-6 border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
