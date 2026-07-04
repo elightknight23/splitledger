@@ -1,3 +1,4 @@
+import { Coffee, HandCoins, Receipt } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError, apiFetch } from "../api/client";
 import type { Expense, GroupMember, Settlement } from "../types";
@@ -78,71 +79,160 @@ export function ActivityTab({ groupId, members }: ActivityTabProps) {
   });
 
   if (isLoading) {
-    return <p className="py-6 text-slate-500">Loading activity…</p>;
+    return (
+      <p className="label-caps animate-pulse py-6 text-on-surface-variant">Inking ledger…</p>
+    );
   }
 
   return (
     <div className="py-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-800">Activity</h2>
-        <select
-          value={memberFilter}
-          onChange={(e) =>
-            setMemberFilter(e.target.value === "all" ? "all" : Number(e.target.value))
-          }
-          className="rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
-        >
-          <option value="all">All members</option>
-          {members.map((m) => (
-            <option key={m.userId} value={m.userId}>
-              {m.user.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-on-surface pb-4">
+        <div className="space-y-2">
+          <span className="label-caps block text-tertiary">Filter Feed</span>
+          <select
+            value={memberFilter}
+            onChange={(e) =>
+              setMemberFilter(e.target.value === "all" ? "all" : Number(e.target.value))
+            }
+            className="hard-shadow-sm border-2 border-on-surface bg-surface px-4 py-2 font-body focus:border-primary focus:outline-none"
+          >
+            <option value="all">Everyone's entries</option>
+            {members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.user.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <span className="label-caps rotate-1 border border-on-surface bg-tertiary-fixed px-3 py-1.5 text-[10px] text-on-surface">
+          {filteredItems.length} {filteredItems.length === 1 ? "entry" : "entries"}
+        </span>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="mt-6 border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
+          {error}
+        </p>
       )}
 
       {filteredItems.length === 0 ? (
-        <p className="mt-4 text-slate-500">No activity yet.</p>
+        <div className="mt-8 flex flex-col items-center border-2 border-on-surface bg-surface-container p-12 text-center">
+          <Coffee className="mb-4 h-10 w-10 text-on-surface-variant opacity-50" />
+          <h3 className="font-headline text-lg font-bold">Nothing here yet</h3>
+          <p className="mt-2 max-w-[240px] font-body text-sm text-on-surface-variant">
+            Looks like the ledger is sleeping. Wake it up with an expense?
+          </p>
+        </div>
       ) : (
-        <ul className="mt-4 space-y-2">
-          {filteredItems.map((item) =>
-            item.kind === "expense" ? (
-              <li
-                key={`expense-${item.expense.id}`}
-                className="rounded-lg border border-slate-200 bg-white p-4"
-              >
-                <p className="text-sm text-slate-800">
-                  <span className="font-medium">{item.expense.payer.name}</span> added an expense:{" "}
-                  <span className="font-medium">{item.expense.description}</span>{" "}
-                  <span className="text-slate-500">
-                    (${Number(item.expense.amount).toFixed(2)})
-                  </span>
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {new Date(item.expense.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ) : (
-              <li
-                key={`settlement-${item.settlement.id}`}
-                className="rounded-lg border border-slate-200 bg-white p-4"
-              >
-                <p className="text-sm text-slate-800">
-                  <span className="font-medium">{item.settlement.fromUserRef.name}</span> paid{" "}
-                  <span className="font-medium">{item.settlement.toUserRef.name}</span>:{" "}
-                  <span className="font-medium">${Number(item.settlement.amount).toFixed(2)}</span>
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {new Date(item.settlement.settledAt).toLocaleString()}
-                </p>
-              </li>
-            )
-          )}
-        </ul>
+        <div className="relative mt-8 space-y-8">
+          {/* Dashed timeline spine */}
+          <div
+            className="absolute bottom-0 left-[9px] top-0 border-l-2 border-dashed border-on-surface/30"
+            aria-hidden="true"
+          />
+          {filteredItems.map((item, i) => {
+            const dateLabel = new Date(item.date).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+            const prev = filteredItems[i - 1];
+            const prevLabel = prev
+              ? new Date(prev.date).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : null;
+            const showMarker = dateLabel !== prevLabel;
+
+            return (
+              <div key={item.kind === "expense" ? `e-${item.expense.id}` : `s-${item.settlement.id}`}>
+                {showMarker && (
+                  <div className="relative z-10 mb-8 flex items-center gap-4">
+                    <span className="label-caps bg-on-surface px-3 py-1.5 text-surface">
+                      {dateLabel}
+                    </span>
+                    <span className="flex-1 border-t-2 border-on-surface/10" />
+                  </div>
+                )}
+
+                <div className="relative pl-9">
+                  <div
+                    className={`absolute left-0 top-2 z-10 h-5 w-5 rounded-full border-2 border-on-surface ${
+                      item.kind === "expense" ? "bg-primary" : "bg-secondary"
+                    }`}
+                    aria-hidden="true"
+                  />
+
+                  {item.kind === "expense" ? (
+                    <div className="border-2 border-on-surface bg-surface p-4 shadow-[4px_4px_0px_0px_#425366]">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <Receipt className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <h3 className="truncate font-body text-base font-bold text-on-surface">
+                              {item.expense.description}
+                            </h3>
+                            <p className="mt-1 font-body text-sm text-on-surface-variant">
+                              Added by{" "}
+                              <span className="font-bold underline decoration-secondary">
+                                {item.expense.payer.name}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-label text-lg font-bold text-on-surface">
+                            ${Number(item.expense.amount).toFixed(2)}
+                          </p>
+                          <p className="label-caps mt-1 text-[10px] text-tertiary">
+                            Split ×{item.expense.splits.length}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="label-caps mt-3 text-[10px] text-on-surface-variant opacity-60">
+                        {new Date(item.expense.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-on-surface bg-surface-container-low p-4 shadow-[4px_4px_0px_0px_#934849]">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <HandCoins className="h-6 w-6 shrink-0 text-secondary" />
+                          <div className="min-w-0">
+                            <p className="font-body text-on-surface">
+                              <span className="font-bold text-secondary">
+                                {item.settlement.fromUserRef.name}
+                              </span>{" "}
+                              paid{" "}
+                              <span className="font-bold text-primary">
+                                {item.settlement.toUserRef.name}
+                              </span>
+                            </p>
+                            <p className="label-caps mt-1 text-[10px] text-on-surface-variant opacity-60">
+                              {new Date(item.settlement.settledAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              · Settled
+                            </p>
+                          </div>
+                        </div>
+                        <p className="shrink-0 font-label text-lg font-bold text-secondary">
+                          ${Number(item.settlement.amount).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

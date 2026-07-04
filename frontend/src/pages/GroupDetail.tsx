@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { ApiError, apiFetch } from "../api/client";
 import { ActivityTab } from "../components/ActivityTab";
 import { AddExpenseModal } from "../components/AddExpenseModal";
+import { AVATAR_FILLS } from "../components/avatars";
 import { BalancesTab } from "../components/BalancesTab";
 import { useAuth } from "../context/AuthContext";
 import type { Expense, GroupDetail as GroupDetailData } from "../types";
@@ -97,34 +98,41 @@ export function GroupDetail() {
   }
 
   if (isLoading) {
-    return <p className="text-slate-500">Loading group…</p>;
+    return <p className="label-caps animate-pulse text-on-surface-variant">Inking ledger…</p>;
   }
 
   if (loadError || !group) {
     return (
-      <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+      <p className="border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
         {loadError ?? "Group not found"}
       </p>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-slate-800">{group.name}</h1>
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-headline text-2xl font-bold text-on-surface sm:text-3xl">
+          {group.name}
+        </h1>
+        <span className="label-caps -rotate-1 border border-on-surface bg-tertiary-fixed px-2 py-1 text-[10px] text-on-surface">
+          Est. {new Date(group.createdAt).toLocaleDateString()}
+        </span>
+      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
         <div>
-          <div className="border-b border-slate-200">
-            <nav className="flex gap-6">
+          <div className="border-b-2 border-on-surface/10">
+            <nav className="flex gap-6 sm:gap-8">
               {TABS.map(({ name, icon: Icon }) => (
                 <button
                   key={name}
                   type="button"
                   onClick={() => setActiveTab(name)}
-                  className={`flex items-center gap-1.5 border-b-2 px-1 py-3 text-sm font-medium ${
+                  className={`label-caps flex items-center gap-1.5 px-1 pb-3 pt-2 ${
                     activeTab === name
-                      ? "border-slate-900 text-slate-900"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
+                      ? "-mb-0.5 border-b-4 border-primary text-primary"
+                      : "border-b-4 border-transparent text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -136,106 +144,128 @@ export function GroupDetail() {
 
           {activeTab === "Expenses" && (
             <div className="py-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-800">Expenses</h2>
-                <button
-                  type="button"
-                  onClick={() => setExpenseModal(null)}
-                  className="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Expense
-                </button>
+              <div className="hard-shadow border-2 border-on-surface bg-surface p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-headline text-xl font-bold text-on-surface">
+                      Expense Log
+                    </h2>
+                    <p className="label-caps mt-1.5 text-[10px] text-on-surface-variant opacity-70">
+                      {expenses.length} {expenses.length === 1 ? "entry" : "entries"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpenseModal(null)}
+                    className="hard-shadow-sm btn-press label-caps flex items-center gap-2 border-2 border-on-surface bg-primary px-4 py-2.5 text-on-primary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Expense
+                  </button>
+                </div>
+
+                {expensesError && (
+                  <p className="mt-4 border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
+                    {expensesError}
+                  </p>
+                )}
+
+                {expenses.length === 0 ? (
+                  <p className="mt-6 border-2 border-dashed border-on-surface/30 p-8 text-center font-body italic text-on-surface-variant">
+                    The ledger is empty. Add the first entry.
+                  </p>
+                ) : (
+                  <ul className="mt-4 border-t-2 border-on-surface">
+                    {expenses.map((expense) => (
+                      <li
+                        key={expense.id}
+                        className="group flex items-center justify-between gap-4 border-b border-dashed border-on-surface/20 py-3 transition-colors hover:bg-surface-container-low"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-body font-bold text-on-surface">
+                            {expense.description}
+                          </p>
+                          <p className="label-caps mt-1.5 text-[10px] text-on-surface-variant opacity-70">
+                            Paid by {expense.payer.name} ·{" "}
+                            {new Date(expense.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="font-label text-base font-bold text-on-surface">
+                            ${Number(expense.amount).toFixed(2)}
+                          </span>
+                          {expense.paidBy === user?.id && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setExpenseModal(expense)}
+                                aria-label="Edit expense"
+                                className="text-on-surface-variant hover:text-primary"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteExpense(expense.id)}
+                                aria-label="Delete expense"
+                                className="text-on-surface-variant hover:text-error"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-
-              {expensesError && (
-                <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {expensesError}
-                </p>
-              )}
-
-              {expenses.length === 0 ? (
-                <p className="mt-4 text-slate-500">No expenses yet.</p>
-              ) : (
-                <ul className="mt-4 space-y-2">
-                  {expenses.map((expense) => (
-                    <li
-                      key={expense.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{expense.description}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Paid by {expense.payer.name} ·{" "}
-                          {new Date(expense.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-slate-800">
-                          ${Number(expense.amount).toFixed(2)}
-                        </span>
-                        {expense.paidBy === user?.id && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setExpenseModal(expense)}
-                              aria-label="Edit expense"
-                              className="text-slate-500 hover:text-slate-900"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleDeleteExpense(expense.id)}
-                              aria-label="Delete expense"
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           )}
 
           {activeTab === "Balances" && <BalancesTab groupId={group.id} />}
-          {activeTab === "Activity" && (
-            <ActivityTab groupId={group.id} members={group.members} />
-          )}
+          {activeTab === "Activity" && <ActivityTab groupId={group.id} members={group.members} />}
         </div>
 
-        <aside className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <aside className="self-start border-2 border-on-surface bg-surface-container-low p-5 lg:hard-shadow">
+          <h2 className="label-caps flex items-center gap-2 text-on-surface-variant">
             <Users className="h-4 w-4" />
             Members
           </h2>
-          <ul className="mt-3 space-y-2">
-            {group.members.map((member) => (
-              <li key={member.id} className="text-sm text-slate-600">
-                {member.user.name}{" "}
-                <span className="text-slate-400">({member.user.email})</span>
+          <ul className="mt-4 space-y-3">
+            {group.members.map((member, i) => (
+              <li key={member.id} className="flex items-center gap-3">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center border-2 border-on-surface font-body font-bold ${AVATAR_FILLS[i % AVATAR_FILLS.length]}`}
+                >
+                  {member.user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-body font-bold text-on-surface">
+                    {member.user.name}
+                  </p>
+                  <p className="truncate font-body text-xs text-on-surface-variant">
+                    {member.user.email}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
 
           <form
             onSubmit={(e) => void handleAddMember(e)}
-            className="mt-5 border-t border-slate-200 pt-5"
+            className="mt-6 border-2 border-dashed border-outline bg-surface-container-lowest/50 p-4"
           >
-            <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="member-email">
-              Add member by email
+            <label className="label-caps mb-3 block text-on-surface-variant" htmlFor="member-email">
+              Add_Member:
             </label>
             {addMemberError && (
-              <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="mb-3 border-2 border-error bg-error-container px-2 py-1.5 text-xs text-on-error-container">
                 {addMemberError}
               </p>
             )}
             {addMemberSuccess && (
-              <p className="mb-2 rounded-md bg-green-50 px-3 py-2 text-xs text-green-700">
+              <p className="label-caps mb-3 inline-block -rotate-1 border border-on-surface bg-tertiary-fixed px-2 py-1.5 text-[10px] text-on-surface">
                 {addMemberSuccess}
               </p>
             )}
@@ -245,15 +275,16 @@ export function GroupDetail() {
               required
               value={memberEmail}
               onChange={(e) => setMemberEmail(e.target.value)}
-              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              placeholder="email@address.com"
+              className="mb-3 w-full border-b-2 border-on-surface bg-transparent p-1 font-body italic placeholder:text-outline-variant focus:border-primary focus:outline-none"
             />
             <button
               type="submit"
               disabled={isAddingMember}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="label-caps flex w-full items-center justify-center gap-2 bg-on-surface py-2.5 text-surface transition-colors hover:bg-primary disabled:opacity-60"
             >
               <UserPlus className="h-4 w-4" />
-              {isAddingMember ? "Adding…" : "Add Member"}
+              {isAddingMember ? "Adding…" : "Send Invite"}
             </button>
           </form>
         </aside>

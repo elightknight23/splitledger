@@ -1,1 +1,127 @@
 @import "tailwindcss";
+
+/*
+ * "Indie-DIY Visual Language" — tokens sourced from the Stitch design project
+ * (Indie Ledger). Tactile / lo-fi brutalism: warm cream paper, hard offset
+ * shadows, 0px radii, typewriter type. Color names follow the design doc's
+ * Material-style roles so the mapping back to the design files stays obvious.
+ */
+@theme {
+  --color-surface: #fbfaee;
+  --color-surface-dim: #dbdbcf;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f4e8;
+  --color-surface-container: #efeee3;
+  --color-surface-container-high: #e9e9dd;
+  --color-surface-container-highest: #e4e3d7;
+  --color-on-surface: #1b1c15;
+  --color-on-surface-variant: #44474c;
+  --color-outline: #74777d;
+  --color-outline-variant: #c4c6cd;
+
+  --color-primary: #425366;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #5a6b7f;
+  --color-on-primary-container: #deecff;
+  --color-primary-fixed: #d2e4fc;
+
+  --color-secondary: #934849;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #fe9f9f;
+  --color-on-secondary-container: #783335;
+  --color-secondary-fixed: #ffdad9;
+
+  --color-tertiary: #465640;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #5e6e57;
+  --color-on-tertiary-container: #def0d3;
+  --color-tertiary-fixed: #d6e8cb;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --font-headline: "Domine", serif;
+  --font-body: "Courier Prime", monospace;
+  --font-label: "Space Mono", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-surface font-body text-on-surface;
+  }
+}
+
+/* Hard-edged offset shadows — the design's stand-in for elevation. */
+@utility hard-shadow {
+  box-shadow: 6px 6px 0 0 var(--color-on-surface);
+}
+
+@utility hard-shadow-sm {
+  box-shadow: 3px 3px 0 0 var(--color-on-surface);
+}
+
+/* Buttons "press down" into the page instead of glowing: translate into the
+   spot the shadow occupied, and drop the shadow. */
+@utility btn-press {
+  transition:
+    transform 100ms ease,
+    box-shadow 100ms ease;
+
+  &:hover {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  &:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+  }
+}
+
+/* Space Mono utility caps — used for labels, buttons, and metadata. */
+@utility label-caps {
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Subtle grid-paper dots (pure CSS — no remote texture images). */
+@utility paper-bg {
+  background-image: radial-gradient(circle, rgba(27, 28, 21, 0.05) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+/* Denser halftone block used as a decorative header/corner texture. */
+@utility half-tone {
+  background-image: radial-gradient(#44474c 0.5px, transparent 0.5px);
+  background-size: 4px 4px;
+}
+
+/* Decorative paper clip perched on the auth card. */
+.paper-clip {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  width: 32px;
+  height: 64px;
+  border: 3px solid var(--color-outline);
+  border-radius: 16px;
+  background: transparent;
+  z-index: 10;
+  transform: rotate(-10deg);
+}
+
+.paper-clip::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 6px;
+  width: 14px;
+  height: 36px;
+  border: 3px solid var(--color-outline);
+  border-radius: 8px;
+}

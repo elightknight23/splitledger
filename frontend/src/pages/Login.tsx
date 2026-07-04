@@ -1,3 +1,4 @@
+import { AtSign, Loader2, Lock, LogIn } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -31,56 +32,99 @@ export function Login() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50">
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
-      >
-        <h1 className="mb-6 text-xl font-semibold text-slate-800">Log in</h1>
+    <div className="paper-bg flex min-h-screen items-center justify-center bg-surface p-4">
+      <main className="relative w-full max-w-[420px]">
+        <div className="hard-shadow relative border-2 border-on-surface bg-surface-container-low p-8 sm:p-10">
+          <div className="paper-clip" aria-hidden="true" />
 
-        {error && (
-          <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        )}
+          <header className="mb-10 text-center">
+            <h1 className="font-headline text-3xl font-bold">SplitLedger</h1>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="h-px w-8 bg-on-surface" />
+              <span className="label-caps text-on-surface-variant">Shared Finance</span>
+              <span className="h-px w-8 bg-on-surface" />
+            </div>
+          </header>
 
-        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="email">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-        />
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8">
+            {error && (
+              <p className="border-2 border-error bg-error-container px-3 py-2 text-sm text-on-error-container">
+                {error}
+              </p>
+            )}
 
-        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="password">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-6 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-        />
+            <div className="flex flex-col space-y-1">
+              <label
+                className="label-caps flex items-center gap-1.5 text-on-surface-variant"
+                htmlFor="email"
+              >
+                <AtSign className="h-3.5 w-3.5" />
+                User_Identifier:
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="border-b-2 border-on-surface bg-transparent p-2 font-body placeholder:text-outline-variant focus:border-primary focus:outline-none"
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+            <div className="flex flex-col space-y-1">
+              <label
+                className="label-caps flex items-center gap-1.5 text-on-surface-variant"
+                htmlFor="password"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                Pass_Key:
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="border-b-2 border-on-surface bg-transparent p-2 font-body placeholder:text-outline-variant focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="hard-shadow-sm btn-press flex w-full items-center justify-center gap-2 border-2 border-on-surface bg-primary py-3.5 font-headline text-lg font-bold uppercase text-on-primary disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <LogIn className="h-5 w-5" />
+              )}
+              {isSubmitting ? "Authenticating…" : "Login"}
+            </button>
+          </form>
+
+          <footer className="mt-10 border-t-2 border-dashed border-outline-variant pt-6 text-center">
+            <p className="mb-4 font-body text-on-surface-variant">New to the ledger?</p>
+            <Link
+              to="/register"
+              className="label-caps inline-block -rotate-1 border-2 border-primary px-4 py-2 text-primary transition-colors hover:bg-primary hover:text-on-primary"
+            >
+              Create_Account
+            </Link>
+          </footer>
+        </div>
+
+        <div
+          className="hard-shadow-sm absolute -top-4 -right-6 hidden h-24 w-24 rotate-6 border-2 border-on-surface bg-secondary-container p-2 sm:block"
+          aria-hidden="true"
         >
-          {isSubmitting ? "Logging in…" : "Log In"}
-        </button>
-
-        <p className="mt-4 text-center text-sm text-slate-600">
-          Don't have an account?{" "}
-          <Link to="/register" className="font-medium text-slate-900 underline">
-            Register
-          </Link>
-        </p>
-      </form>
+          <p className="font-body text-[10px] leading-tight text-on-secondary-container">
+            "Keep your receipts. Friendship counts as an expense."
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
