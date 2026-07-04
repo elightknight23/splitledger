@@ -20,7 +20,7 @@ export function GroupCard({ group, index }: { group: Group; index: number }) {
       </div>
       <h3 className="mt-4 font-headline text-xl font-bold text-on-surface">{group.name}</h3>
       <p className="label-caps mt-2 text-on-surface-variant">
-        Created {new Date(group.createdAt).toLocaleDateString()}
+        Created {new Date(group.createdAt).toLocaleDateString()} · {group.currency}
       </p>
       <div className="mt-4 flex items-center justify-between text-primary">
         <span className="label-caps">Open Ledger</span>

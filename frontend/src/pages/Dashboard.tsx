@@ -5,6 +5,7 @@ import { ApiError, apiFetch } from "../api/client";
 import { GroupCard } from "../components/GroupCard";
 import { Modal } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
+import { SUPPORTED_CURRENCIES } from "../lib/currency";
 import type { Group, GroupInvite } from "../types";
 
 export function Dashboard() {
@@ -20,6 +21,7 @@ export function Dashboard() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupCurrency, setNewGroupCurrency] = useState("USD");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -72,8 +74,12 @@ export function Dashboard() {
     setCreateError(null);
     setIsCreating(true);
     try {
-      await apiFetch<Group>("/groups", { method: "POST", body: { name: newGroupName } });
+      await apiFetch<Group>("/groups", {
+        method: "POST",
+        body: { name: newGroupName, currency: newGroupCurrency },
+      });
       setNewGroupName("");
+      setNewGroupCurrency("USD");
       setIsModalOpen(false);
       await loadGroups();
     } catch (err) {
@@ -202,6 +208,24 @@ export function Dashboard() {
               placeholder="e.g. Trip to Goa"
               className="mb-6 w-full border-b-2 border-on-surface bg-transparent p-2 font-body placeholder:text-outline-variant focus:border-primary focus:outline-none"
             />
+            <label className="label-caps mb-1 block text-on-surface-variant" htmlFor="group-currency">
+              Currency:
+            </label>
+            <select
+              id="group-currency"
+              value={newGroupCurrency}
+              onChange={(e) => setNewGroupCurrency(e.target.value)}
+              className="mb-2 w-full border-2 border-on-surface bg-surface-container-low px-3 py-2 font-body focus:border-primary focus:outline-none"
+            >
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.symbol} — {c.label} ({c.code})
+                </option>
+              ))}
+            </select>
+            <p className="mb-6 font-body text-xs italic text-on-surface-variant">
+              All expenses in this group will use this currency. It can't be changed later.
+            </p>
             <button
               type="submit"
               disabled={isCreating}

@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, apiFetch } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { currencySymbol } from "../lib/currency";
 import type { Expense, GroupDetail as GroupDetailData } from "../types";
 import { AVATAR_FILLS } from "./avatars";
 import { Modal } from "./Modal";
@@ -78,6 +79,7 @@ const SPLIT_INPUT_CLASSES =
 export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpenseModalProps) {
   const { user } = useAuth();
   const isEditMode = expense !== undefined;
+  const symbol = currencySymbol(group.currency);
 
   const [description, setDescription] = useState(expense?.description ?? "");
   const [amountStr, setAmountStr] = useState(expense?.amount ?? "");
@@ -167,7 +169,7 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
         }
         if (amountSumCents !== totalCents) {
           setError(
-            `Splits sum to $${centsToDisplay(amountSumCents)} but the total is $${centsToDisplay(totalCents)}`
+            `Splits sum to ${symbol}${centsToDisplay(amountSumCents)} but the total is ${symbol}${centsToDisplay(totalCents)}`
           );
           return;
         }
@@ -261,7 +263,7 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
               Total Amount
             </label>
             <div className="flex items-center border-b-2 border-on-surface">
-              <span className="mr-2 font-body text-lg">$</span>
+              <span className="mr-2 font-body text-lg">{symbol}</span>
               <input
                 id="expense-amount"
                 type="number"
@@ -334,13 +336,13 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
 
               {uiSplitType === "equal" && (
                 <span className="font-label text-sm text-on-surface-variant">
-                  {equalPreview ? `$${centsToDisplay(equalPreview.get(m.userId) ?? 0)}` : "—"}
+                  {equalPreview ? `${symbol}${centsToDisplay(equalPreview.get(m.userId) ?? 0)}` : "—"}
                 </span>
               )}
 
               {uiSplitType === "amount" && (
                 <div className="flex items-center gap-2">
-                  <span className="font-body text-xs text-on-surface-variant">$</span>
+                  <span className="font-body text-xs text-on-surface-variant">{symbol}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -359,7 +361,8 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
                 <div className="flex items-center gap-2">
                   {percentPreview && (
                     <span className="font-label text-xs text-on-surface-variant">
-                      ${centsToDisplay(percentPreview.get(m.userId) ?? 0)}
+                      {symbol}
+                      {centsToDisplay(percentPreview.get(m.userId) ?? 0)}
                     </span>
                   )}
                   <input
@@ -381,7 +384,8 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
                 <div className="flex items-center gap-2">
                   {sharesPreview && (
                     <span className="font-label text-xs text-on-surface-variant">
-                      ${centsToDisplay(sharesPreview.get(m.userId) ?? 0)}
+                      {symbol}
+                      {centsToDisplay(sharesPreview.get(m.userId) ?? 0)}
                     </span>
                   )}
                   <input
@@ -407,7 +411,8 @@ export function AddExpenseModal({ group, expense, onClose, onSaved }: AddExpense
             <div>
               <p className="label-caps text-on-secondary-container">Split Mismatch</p>
               <p className="mt-1.5 font-body text-xs text-on-secondary-container">
-                Splits sum to ${centsToDisplay(amountSumCents)} but the total is $
+                Splits sum to {symbol}
+                {centsToDisplay(amountSumCents)} but the total is {symbol}
                 {centsToDisplay(totalCents!)}.
               </p>
             </div>

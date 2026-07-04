@@ -2,11 +2,13 @@ import { CheckCircle2, Loader2, Scale, Sparkles, TrendingUp } from "lucide-react
 import { useEffect, useState } from "react";
 import { ApiError, apiFetch } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { formatMoney } from "../lib/currency";
 import type { BalancesResponse, SuggestedSettlement } from "../types";
 import { AVATAR_FILLS } from "./avatars";
 
 interface BalancesTabProps {
   groupId: number;
+  currency: string;
 }
 
 // Design language: sage green = money in, dusty red = money out, faded = even.
@@ -21,7 +23,7 @@ function suggestionKey(s: SuggestedSettlement): string {
   return `${s.from.id}-${s.to.id}`;
 }
 
-export function BalancesTab({ groupId }: BalancesTabProps) {
+export function BalancesTab({ groupId, currency }: BalancesTabProps) {
   const { user } = useAuth();
   const [data, setData] = useState<BalancesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,7 +128,7 @@ export function BalancesTab({ groupId }: BalancesTabProps) {
                   </div>
                 </div>
                 <span className={`shrink-0 font-label text-xl font-bold ${tone.color}`}>
-                  ${Math.abs(Number(balance.amount)).toFixed(2)}
+                  {formatMoney(Math.abs(Number(balance.amount)), currency)}
                 </span>
               </li>
             );
@@ -162,7 +164,7 @@ export function BalancesTab({ groupId }: BalancesTabProps) {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                     <span className="font-label text-2xl font-bold text-on-surface">
-                      ${Number(suggestion.amount).toFixed(2)}
+                      {formatMoney(suggestion.amount, currency)}
                     </span>
                     <button
                       type="button"

@@ -1,6 +1,9 @@
 export interface Group {
   id: number;
   name: string;
+  // ISO 4217 code (e.g. "USD", "INR") — set at creation, immutable, and the
+  // denomination of every amount in the group. See lib/currency.ts.
+  currency: string;
   createdBy: number;
   createdAt: string;
 }

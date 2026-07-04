@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { SUPPORTED_CURRENCIES, isSupportedCurrency } from "../lib/currency";
 import { requireAuth } from "../middleware/auth.middleware";
 import {
   AlreadyInvitedError,
@@ -31,13 +32,25 @@ function parseGroupId(raw: string): number | null {
 }
 
 router.post("/", async (req, res) => {
-  const { name } = req.body ?? {};
+  const { name, currency } = req.body ?? {};
   if (!isNonEmptyString(name)) {
     res.status(400).json({ error: "name is required" });
     return;
   }
+  // Currency is optional (defaults to USD) but immutable after creation —
+  // changing it later would silently re-denominate every existing expense.
+  if (currency !== undefined && !isSupportedCurrency(currency)) {
+    res.status(400).json({
+      error: `currency must be one of: ${SUPPORTED_CURRENCIES.join(", ")}`,
+    });
+    return;
+  }
 
-  const group = await createGroup({ name, creatorId: req.user!.id });
+  const group = await createGroup({
+    name,
+    currency: currency ?? "USD",
+    creatorId: req.user!.id,
+  });
   res.status(201).json(group);
 });
 

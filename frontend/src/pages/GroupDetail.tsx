@@ -18,6 +18,7 @@ import { AddExpenseModal } from "../components/AddExpenseModal";
 import { AVATAR_FILLS } from "../components/avatars";
 import { BalancesTab } from "../components/BalancesTab";
 import { useAuth } from "../context/AuthContext";
+import { currencySymbol, formatMoney } from "../lib/currency";
 import type { Expense, GroupDetail as GroupDetailData } from "../types";
 
 const TABS = [
@@ -167,6 +168,9 @@ export function GroupDetail() {
         <span className="label-caps -rotate-1 border border-on-surface bg-tertiary-fixed px-2 py-1 text-[10px] text-on-surface">
           Est. {new Date(group.createdAt).toLocaleDateString()}
         </span>
+        <span className="label-caps rotate-1 border border-on-surface bg-primary-fixed px-2 py-1 text-[10px] text-on-surface">
+          {currencySymbol(group.currency)} {group.currency}
+        </span>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
@@ -241,7 +245,7 @@ export function GroupDetail() {
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
                           <span className="font-label text-base font-bold text-on-surface">
-                            ${Number(expense.amount).toFixed(2)}
+                            {formatMoney(expense.amount, group.currency)}
                           </span>
                           {expense.paidBy === user?.id && (
                             <>
@@ -272,8 +276,12 @@ export function GroupDetail() {
             </div>
           )}
 
-          {activeTab === "Balances" && <BalancesTab groupId={group.id} />}
-          {activeTab === "Activity" && <ActivityTab groupId={group.id} members={group.members} />}
+          {activeTab === "Balances" && (
+            <BalancesTab groupId={group.id} currency={group.currency} />
+          )}
+          {activeTab === "Activity" && (
+            <ActivityTab groupId={group.id} currency={group.currency} members={group.members} />
+          )}
         </div>
 
         <aside className="self-start border-2 border-on-surface bg-surface-container-low p-5 lg:hard-shadow">

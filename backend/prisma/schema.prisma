@@ -30,6 +30,9 @@ model User {
 model Group {
   id        Int      @id @default(autoincrement())
   name      String
+  // ISO 4217 code, fixed at creation. Every amount in the group is denominated
+  // in this one currency — no per-expense currencies, no FX conversion.
+  currency  String   @default("USD")
   createdBy Int      @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
 

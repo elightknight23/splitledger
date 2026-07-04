@@ -1,10 +1,12 @@
 import { Coffee, HandCoins, Receipt } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError, apiFetch } from "../api/client";
+import { formatMoney } from "../lib/currency";
 import type { Expense, GroupMember, Settlement } from "../types";
 
 interface ActivityTabProps {
   groupId: number;
+  currency: string;
   members: GroupMember[];
 }
 
@@ -12,7 +14,7 @@ type ActivityItem =
   | { kind: "expense"; date: string; expense: Expense }
   | { kind: "settlement"; date: string; settlement: Settlement };
 
-export function ActivityTab({ groupId, members }: ActivityTabProps) {
+export function ActivityTab({ groupId, currency, members }: ActivityTabProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,7 +186,7 @@ export function ActivityTab({ groupId, members }: ActivityTabProps) {
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="font-label text-lg font-bold text-on-surface">
-                            ${Number(item.expense.amount).toFixed(2)}
+                            {formatMoney(item.expense.amount, currency)}
                           </p>
                           <p className="label-caps mt-1 text-[10px] text-tertiary">
                             Split ×{item.expense.splits.length}
@@ -223,7 +225,7 @@ export function ActivityTab({ groupId, members }: ActivityTabProps) {
                           </div>
                         </div>
                         <p className="shrink-0 font-label text-lg font-bold text-secondary">
-                          ${Number(item.settlement.amount).toFixed(2)}
+                          {formatMoney(item.settlement.amount, currency)}
                         </p>
                       </div>
                     </div>

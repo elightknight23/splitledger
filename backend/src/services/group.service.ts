@@ -37,13 +37,21 @@ function assertIsMember(group: { members: { userId: number }[] }, userId: number
   }
 }
 
-export async function createGroup({ name, creatorId }: { name: string; creatorId: number }) {
+export async function createGroup({
+  name,
+  creatorId,
+  currency,
+}: {
+  name: string;
+  creatorId: number;
+  currency: string;
+}) {
   // Explicit transaction (rather than relying on Prisma's implicit nested-write
   // transaction) so the group and the creator's membership are demonstrably
   // atomic: either both rows exist or neither does.
   return prisma.$transaction(async (tx) => {
     const group = await tx.group.create({
-      data: { name, createdBy: creatorId },
+      data: { name, currency, createdBy: creatorId },
     });
     await tx.groupMember.create({
       data: { groupId: group.id, userId: creatorId },
