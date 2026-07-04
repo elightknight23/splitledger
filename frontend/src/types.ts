@@ -43,3 +43,30 @@ export interface Expense {
   payer: GroupMemberUser;
   splits: ExpenseSplit[];
 }
+
+export interface Settlement {
+  id: number;
+  groupId: number;
+  fromUser: number;
+  toUser: number;
+  amount: string;
+  settledAt: string;
+  fromUserRef: GroupMemberUser;
+  toUserRef: GroupMemberUser;
+}
+
+export interface Balance {
+  user: GroupMemberUser;
+  amount: string;
+}
+
+export interface SuggestedSettlement {
+  from: GroupMemberUser;
+  to: GroupMemberUser;
+  amount: string;
+}
+
+export interface BalancesResponse {
+  balances: Balance[];
+  suggestedSettlements: SuggestedSettlement[];
+}

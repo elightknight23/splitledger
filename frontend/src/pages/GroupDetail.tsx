@@ -1,13 +1,20 @@
+import { Activity, Pencil, Plus, Receipt, Scale, Trash2, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { ApiError, apiFetch } from "../api/client";
+import { ActivityTab } from "../components/ActivityTab";
 import { AddExpenseModal } from "../components/AddExpenseModal";
+import { BalancesTab } from "../components/BalancesTab";
 import { useAuth } from "../context/AuthContext";
 import type { Expense, GroupDetail as GroupDetailData } from "../types";
 
-const TABS = ["Expenses", "Balances", "Activity"] as const;
-type Tab = (typeof TABS)[number];
+const TABS = [
+  { name: "Expenses", icon: Receipt },
+  { name: "Balances", icon: Scale },
+  { name: "Activity", icon: Activity },
+] as const;
+type Tab = (typeof TABS)[number]["name"];
 
 export function GroupDetail() {
   const { id } = useParams<{ id: string }>();
@@ -109,18 +116,19 @@ export function GroupDetail() {
         <div>
           <div className="border-b border-slate-200">
             <nav className="flex gap-6">
-              {TABS.map((tab) => (
+              {TABS.map(({ name, icon: Icon }) => (
                 <button
-                  key={tab}
+                  key={name}
                   type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`border-b-2 px-1 py-3 text-sm font-medium ${
-                    activeTab === tab
+                  onClick={() => setActiveTab(name)}
+                  className={`flex items-center gap-1.5 border-b-2 px-1 py-3 text-sm font-medium ${
+                    activeTab === name
                       ? "border-slate-900 text-slate-900"
                       : "border-transparent text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  {tab}
+                  <Icon className="h-4 w-4" />
+                  {name}
                 </button>
               ))}
             </nav>
@@ -133,8 +141,9 @@ export function GroupDetail() {
                 <button
                   type="button"
                   onClick={() => setExpenseModal(null)}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                 >
+                  <Plus className="h-4 w-4" />
                   Add Expense
                 </button>
               </div>
@@ -170,16 +179,18 @@ export function GroupDetail() {
                             <button
                               type="button"
                               onClick={() => setExpenseModal(expense)}
-                              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                              aria-label="Edit expense"
+                              className="text-slate-500 hover:text-slate-900"
                             >
-                              Edit
+                              <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleDeleteExpense(expense.id)}
-                              className="text-sm font-medium text-red-600 hover:text-red-800"
+                              aria-label="Delete expense"
+                              className="text-red-500 hover:text-red-700"
                             >
-                              Delete
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </>
                         )}
@@ -191,13 +202,17 @@ export function GroupDetail() {
             </div>
           )}
 
-          {/* Placeholder content only — real tab content lands in Sprint 11. */}
-          {activeTab === "Balances" && <div className="py-6 text-slate-500">Balances go here.</div>}
-          {activeTab === "Activity" && <div className="py-6 text-slate-500">Activity goes here.</div>}
+          {activeTab === "Balances" && <BalancesTab groupId={group.id} />}
+          {activeTab === "Activity" && (
+            <ActivityTab groupId={group.id} members={group.members} />
+          )}
         </div>
 
         <aside className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-slate-800">Members</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Users className="h-4 w-4" />
+            Members
+          </h2>
           <ul className="mt-3 space-y-2">
             {group.members.map((member) => (
               <li key={member.id} className="text-sm text-slate-600">
@@ -235,8 +250,9 @@ export function GroupDetail() {
             <button
               type="submit"
               disabled={isAddingMember}
-              className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
             >
+              <UserPlus className="h-4 w-4" />
               {isAddingMember ? "Adding…" : "Add Member"}
             </button>
           </form>
