@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { ApiError, apiFetch } from "../api/client";
-import type { GroupDetail as GroupDetailData } from "../types";
+import { AddExpenseModal } from "../components/AddExpenseModal";
+import { useAuth } from "../context/AuthContext";
+import type { Expense, GroupDetail as GroupDetailData } from "../types";
 
 const TABS = ["Expenses", "Balances", "Activity"] as const;
 type Tab = (typeof TABS)[number];
 
 export function GroupDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
 
   const [group, setGroup] = useState<GroupDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +22,11 @@ export function GroupDetail() {
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const [addMemberSuccess, setAddMemberSuccess] = useState<string | null>(null);
+
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expensesError, setExpensesError] = useState<string | null>(null);
+  // undefined = closed, null = create mode, an Expense = edit mode.
+  const [expenseModal, setExpenseModal] = useState<Expense | null | undefined>(undefined);
 
   async function loadGroup() {
     setIsLoading(true);
@@ -33,8 +41,19 @@ export function GroupDetail() {
     }
   }
 
+  async function loadExpenses() {
+    setExpensesError(null);
+    try {
+      const data = await apiFetch<Expense[]>(`/groups/${id}/expenses`);
+      setExpenses(data);
+    } catch (err) {
+      setExpensesError(err instanceof ApiError ? err.message : "Failed to load expenses");
+    }
+  }
+
   useEffect(() => {
     void loadGroup();
+    void loadExpenses();
   }, [id]);
 
   async function handleAddMember(e: FormEvent) {
@@ -54,6 +73,19 @@ export function GroupDetail() {
       setAddMemberError(err instanceof ApiError ? err.message : "Failed to add member");
     } finally {
       setIsAddingMember(false);
+    }
+  }
+
+  async function handleDeleteExpense(expenseId: number) {
+    if (!window.confirm("Delete this expense? This cannot be undone.")) {
+      return;
+    }
+    setExpensesError(null);
+    try {
+      await apiFetch(`/groups/${id}/expenses/${expenseId}`, { method: "DELETE" });
+      await loadExpenses();
+    } catch (err) {
+      setExpensesError(err instanceof ApiError ? err.message : "Failed to delete expense");
     }
   }
 
@@ -93,12 +125,75 @@ export function GroupDetail() {
               ))}
             </nav>
           </div>
-          {/* Placeholder content only — real tab content lands in Sprints 9 and 11. */}
-          <div className="py-6 text-slate-500">
-            {activeTab === "Expenses" && "Expenses go here."}
-            {activeTab === "Balances" && "Balances go here."}
-            {activeTab === "Activity" && "Activity goes here."}
-          </div>
+
+          {activeTab === "Expenses" && (
+            <div className="py-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-800">Expenses</h2>
+                <button
+                  type="button"
+                  onClick={() => setExpenseModal(null)}
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Add Expense
+                </button>
+              </div>
+
+              {expensesError && (
+                <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {expensesError}
+                </p>
+              )}
+
+              {expenses.length === 0 ? (
+                <p className="mt-4 text-slate-500">No expenses yet.</p>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {expenses.map((expense) => (
+                    <li
+                      key={expense.id}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{expense.description}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Paid by {expense.payer.name} ·{" "}
+                          {new Date(expense.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-slate-800">
+                          ${Number(expense.amount).toFixed(2)}
+                        </span>
+                        {expense.paidBy === user?.id && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setExpenseModal(expense)}
+                              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteExpense(expense.id)}
+                              className="text-sm font-medium text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Placeholder content only — real tab content lands in Sprint 11. */}
+          {activeTab === "Balances" && <div className="py-6 text-slate-500">Balances go here.</div>}
+          {activeTab === "Activity" && <div className="py-6 text-slate-500">Activity goes here.</div>}
         </div>
 
         <aside className="rounded-lg border border-slate-200 bg-white p-5">
@@ -147,6 +242,15 @@ export function GroupDetail() {
           </form>
         </aside>
       </div>
+
+      {expenseModal !== undefined && (
+        <AddExpenseModal
+          group={group}
+          expense={expenseModal ?? undefined}
+          onClose={() => setExpenseModal(undefined)}
+          onSaved={() => void loadExpenses()}
+        />
+      )}
     </div>
   );
 }
