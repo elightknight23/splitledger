@@ -10,7 +10,13 @@ import settlementRoutes from "./routes/settlement.routes";
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// Comma-separated allowlist; trailing slashes stripped because the browser's
+// Origin header never includes one, and cors() compares by string equality.
+const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/+$/, ""));
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
