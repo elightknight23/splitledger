@@ -21,8 +21,10 @@ const REFRESH_COOKIE_OPTIONS: CookieOptions = {
   // Cross-site in prod (frontend/backend on different domains) needs "none";
   // same-site localhost dev works with the more restrictive "lax".
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  // Scoped to /auth/refresh so the cookie is never sent on unrelated requests.
-  path: "/auth/refresh",
+  // Scoped so the cookie is never sent on unrelated requests. The browser
+  // matches Path against the URL it requested — behind the Vercel proxy that's
+  // /api/auth/refresh, not /auth/refresh — so prod overrides it via env.
+  path: process.env.REFRESH_COOKIE_PATH ?? "/auth/refresh",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matches REFRESH_TOKEN_TTL in auth.service.ts
 };
 
