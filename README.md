@@ -1,39 +1,115 @@
-# SplitLedger
+<div align="center">
 
-A Splitwise-style group expense splitter, built fundamentals-first: every piece of logic — auth, money math, the settlement algorithm — is hand-rolled and explainable, not outsourced to a library.
+# 💸 SplitLedger
 
-Split expenses with a group, see live-computed balances, and settle up with the minimum number of payments.
+**Split expenses with your group. Settle up in the fewest possible payments.**
 
-## Stack
+[![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Express](https://img.shields.io/badge/Express_5-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma_7-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-| Layer | Choice |
-|---|---|
-| Frontend | React 19 + TypeScript + Vite + Tailwind CSS v4 |
-| Backend | Node.js + Express + TypeScript |
-| ORM / DB | Prisma + PostgreSQL (Docker for local dev) |
-| Auth | JWT access + refresh tokens, bcrypt — rolled by hand |
+</div>
 
-## Features
+A Splitwise-style group expense splitter, built **fundamentals-first**: authentication, money math, and the settlement algorithm are all hand-rolled and explainable — no auth library, no money library, no framework magic. Every line of core logic exists because it was reasoned about, not installed.
 
-- **Groups** — create a group, invite members by email (they must accept the invite to join), leave a group once your balance is settled, delete a group if you created it
-- **Currencies** — each group is denominated in one currency chosen at creation (USD, EUR, GBP, INR, CAD, AUD, SGD); every amount in the group displays in it
-- **Expenses** — equal or custom splits (plus percent/shares modes in the UI), edit/delete your own entries
-- **Balances** — every member's net position, computed live from the ledger on every read; there is no stored balance column to drift out of sync
-- **Settle up** — a minimum-transaction algorithm suggests who pays whom; one click records the settlement and balances update immediately
-- **Activity** — a unified chronological feed of expenses and settlements, filterable by member
+---
 
-## Design decisions worth knowing
+## 🤔 Why SplitLedger?
 
-- **Balances are always derived, never stored.** Each `GET /groups/:id/balances` recomputes from `Expense` + `ExpenseSplit` + `Settlement`. Costs a little on every read, guarantees the number can never disagree with the ledger.
-- **All money math is integer cents.** Floats never touch amounts (`0.1 + 0.2 !== 0.3`); parsing, split validation, and remainder distribution all happen in cents, and Postgres stores `Decimal(10,2)`.
-- **Currency is per-group and immutable.** Set at creation, never converted — a later change would silently re-denominate historical expenses. The allowlist is limited to 2-decimal ISO 4217 currencies because the cents-based math assumes a minor unit of 100 (so no JPY).
-- **The settlement algorithm is a pure function** (`backend/src/services/settlement.service.ts`): net every balance, then greedily match the largest creditor with the largest debtor until everything zeroes out. DB-free, unit-testable, and deliberately written in its "obviously correct" form.
-- **Refresh tokens live in an httpOnly cookie** scoped to `/auth/refresh`; access tokens live only in frontend memory (never localStorage). A silent refresh on page load restores the session.
-- **Business logic lives in `services/`**, routes stay thin and only parse/validate/translate errors to status codes.
+Most expense-splitter tutorials bolt together libraries until the demo works. SplitLedger takes the opposite approach — the interesting problems are solved from first principles:
 
-## Getting started
+- **Money is never a float.** All arithmetic happens in integer cents, because `0.1 + 0.2 !== 0.3` is not a rounding error you want in a ledger.
+- **Balances are never stored.** Every balance you see is recomputed live from the ledger, so it is mathematically impossible for a balance to drift out of sync with the expenses behind it.
+- **Auth is built by hand.** JWT access + refresh token rotation, bcrypt hashing, httpOnly cookies — implemented directly against the primitives so every security decision is deliberate.
+- **Settlement is a pure function.** The "who pays whom" algorithm is DB-free, unit-testable, and written in its obviously-correct form.
 
-Prerequisites: Node 22+, Docker.
+---
+
+## ✨ Features
+
+| | Feature | Description |
+|---|---|---|
+| 👥 | **Groups** | Create groups, invite members by email, leave once your balance is settled, delete groups you created |
+| ✉️ | **Invitations** | Invites must be explicitly accepted — nobody is added to a group without consent |
+| 💱 | **Per-group currency** | Each group is denominated in one currency chosen at creation (USD, EUR, GBP, INR, CAD, AUD, SGD) |
+| 🧾 | **Flexible splits** | Equal, custom-amount, percentage, and share-based splits; edit or delete your own entries |
+| ⚖️ | **Live balances** | Every member's net position, derived from the ledger on every read — no stored balance to go stale |
+| 🤝 | **Settle up** | A minimum-transaction algorithm suggests who pays whom; one click records it and balances update instantly |
+| 📜 | **Activity feed** | A unified chronological stream of expenses and settlements, filterable by member |
+| 🔐 | **Hand-rolled auth** | Access token in memory, refresh token in an httpOnly cookie, silent session restore on page load |
+
+---
+
+## 🧮 How settle-up works
+
+Given any set of expenses and past settlements, SplitLedger computes the smallest set of payments that zeroes everyone out — a greedy max-creditor / max-debtor matching:
+
+```mermaid
+flowchart TD
+    L["Ledger: expenses + splits + settlements"] --> N["Compute each member's net position (integer cents)"]
+    N --> Z{"All positions zero?"}
+    Z -- no --> M["Match largest creditor with largest debtor"]
+    M --> T["Record transfer of min(credit, debt)"]
+    T --> Z
+    Z -- yes --> D["Done — minimal payment list"]
+```
+
+The algorithm lives in [`backend/src/services/settlement.service.ts`](backend/src/services/settlement.service.ts) as a pure function: no database, no side effects, fully unit-testable.
+
+---
+
+## 🧠 Design decisions that matter
+
+- **Balances are always derived, never stored.** `GET /groups/:id/balances` recomputes from `Expense` + `ExpenseSplit` + `Settlement` on every call. It costs a little on each read and guarantees the number can never disagree with the ledger.
+- **All money math is integer cents.** Parsing, split validation, and remainder distribution happen in cents (`backend/src/lib/money.ts`); Postgres stores `Decimal(10,2)`.
+- **Currency is per-group and immutable.** Set at creation, never converted — changing it later would silently re-denominate historical expenses. The allowlist is restricted to 2-decimal ISO 4217 currencies because the cents math assumes a minor unit of 100 (so no JPY).
+- **Refresh tokens live in an httpOnly cookie** scoped to `/auth/refresh`; access tokens live only in frontend memory — never in `localStorage`. A silent refresh on page load restores the session.
+- **Business logic lives in `services/`.** Routes stay thin: parse, validate, translate errors to status codes, nothing else.
+
+---
+
+## 🏗️ Architecture
+
+```
+splitledger/
+├── docker-compose.yml           # Postgres 16 for local dev
+├── backend/
+│   ├── prisma/schema.prisma     # 7 models: User, Group, GroupMember, GroupInvite,
+│   └── src/                     #   Expense, ExpenseSplit, Settlement
+│       ├── routes/              # thin HTTP layer — parse, validate, map errors
+│       ├── services/            # all business logic (settlement algorithm lives here)
+│       ├── middleware/          # JWT auth guard
+│       └── lib/                 # money.ts (integer-cents math), currency.ts, prisma.ts
+└── frontend/
+    └── src/
+        ├── pages/               # Login, Register, Dashboard, GroupDetail
+        ├── components/          # tabs, modals, cards, app shell
+        ├── api/                 # fetch wrapper with in-memory access token
+        └── context/             # AuthContext — session state + silent refresh
+```
+
+---
+
+## 🛠️ Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Frontend | React 19 + TypeScript + Vite | Fast dev loop, typed end to end |
+| Styling | Tailwind CSS v4 | Utility-first, no CSS drift |
+| Backend | Node.js + Express 5 + TypeScript | Minimal framework — the logic is the point |
+| ORM / DB | Prisma 7 + PostgreSQL 16 | Typed queries, migrations, `Decimal` money columns |
+| Auth | JWT + bcrypt, rolled by hand | Every security decision made explicitly, not inherited |
+| Local infra | Docker Compose | One command for a reproducible Postgres |
+
+---
+
+## 🚀 Getting started
+
+**Prerequisites:** Node 22+, Docker.
 
 ### 1. Database
 
@@ -46,60 +122,56 @@ docker compose up -d          # starts Postgres 16 with a named volume
 
 ```bash
 cd backend
-cp .env.example .env          # set DATABASE_URL + two JWT secrets
+cp .env.example .env          # see variables below
 npm install
 npx prisma migrate dev        # create schema
-npm run dev                   # http://localhost:4000
+npm run dev                   # → http://localhost:4000
 ```
 
-Generate strong JWT secrets, e.g. `openssl rand -hex 32` for each of `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`.
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres connection string (matches the Docker values) |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Signing secrets — generate each with `openssl rand -hex 32` |
+| `FRONTEND_URL` | Frontend origin for CORS (`http://localhost:5173` in dev) |
+| `PORT` | API port (default `4000`) |
 
 ### 3. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev                   # http://localhost:5173
+npm run dev                   # → http://localhost:5173
 ```
 
-The frontend reads `VITE_API_URL` (defaults to `http://localhost:4000`); the backend's `FRONTEND_URL` env var must match the frontend origin for CORS.
+The frontend reads `VITE_API_URL` (defaults to `http://localhost:4000`); the backend's `FRONTEND_URL` must match the frontend origin for CORS.
 
-## API overview
+---
 
-```
-POST   /auth/register            POST   /auth/login
-POST   /auth/refresh             POST   /auth/logout
+## 📡 API reference
 
-POST   /groups                   GET    /groups
-GET    /groups/:id               DELETE /groups/:id        # creator only
-POST   /groups/:id/invites       POST   /groups/:id/leave  # leave requires zero balance
+All routes except `/auth/*` require a `Bearer` access token. Group routes verify membership and return `403` for non-members.
 
-GET    /invites                  # pending invites for the current user
-POST   /invites/:id/accept       POST   /invites/:id/decline
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/auth/register` | Create an account |
+| `POST` | `/auth/login` | Log in — returns access token, sets refresh cookie |
+| `POST` | `/auth/refresh` | Exchange refresh cookie for a new access token |
+| `POST` | `/auth/logout` | Invalidate the session |
+| `POST` / `GET` | `/groups` | Create / list your groups |
+| `GET` / `DELETE` | `/groups/:id` | Group detail / delete (creator only) |
+| `POST` | `/groups/:id/invites` | Invite a member by email |
+| `POST` | `/groups/:id/leave` | Leave — requires a zero balance |
+| `GET` | `/invites` | Pending invites for the current user |
+| `POST` | `/invites/:id/accept` · `/decline` | Respond to an invite |
+| `POST` / `GET` | `/groups/:id/expenses` | Create / list expenses |
+| `PUT` / `DELETE` | `/groups/:id/expenses/:eid` | Edit / delete an expense |
+| `GET` | `/groups/:id/balances` | Net positions + suggested settlements |
+| `POST` / `GET` | `/groups/:id/settlements` | Record / list settlements |
 
-POST   /groups/:id/expenses      GET    /groups/:id/expenses
-PUT    /groups/:id/expenses/:eid DELETE /groups/:id/expenses/:eid
+---
 
-GET    /groups/:id/balances      # includes suggested settlements
-POST   /groups/:id/settlements   GET    /groups/:id/settlements
-```
+## ☁️ Deployment
 
-All routes except `/auth/*` require a Bearer access token; group routes verify membership and return 403 for non-members.
-
-## Project structure
-
-```
-backend/
-  prisma/schema.prisma      # 6 tables: User, Group, GroupMember,
-  src/                      #   Expense, ExpenseSplit, Settlement
-    routes/                 # thin HTTP layer
-    services/               # business logic (settlement algorithm lives here)
-    middleware/             # JWT auth
-    lib/money.ts            # integer-cents money math
-frontend/
-  src/
-    pages/                  # Login, Register, Dashboard, GroupDetail
-    components/             # tabs, modals, cards
-    api/client.ts           # fetch wrapper, in-memory access token
-    context/AuthContext.tsx # session state + silent refresh
-```
+- **Frontend** — Vercel. `vercel.json` rewrites `/api/*` to the backend, so the refresh cookie is **first-party** — no third-party cookie blocking in Safari or Chrome.
+- **Backend** — Render, with Postgres alongside.
+- SPA routes fall back to `index.html` via the catch-all rewrite, so deep links work.
